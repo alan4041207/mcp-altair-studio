@@ -8,10 +8,7 @@ procesos guardados — todo desde una conversación con Claude.
 
 Repositorio: https://github.com/alan4041207/mcp-altair-studio
 
-## Nota sobre la versión
-
-Se mencionó Altair Studio **2026.0.5**, pero la instalación encontrada en esta
-máquina es **Altair AI Studio 2026.1.1**, en:
+El target de este proyecto es **Altair AI Studio 2026.1.1**, instalado en:
 
 ```
 C:\Program Files\Altair\RapidMiner\AI Studio 2026.1.1
@@ -19,10 +16,7 @@ C:\Program Files\Altair\RapidMiner\AI Studio 2026.1.1
 
 Todo este proyecto se construyó y validó contra esa instalación real (ver
 "Qué se verificó realmente" más abajo) en lugar de basarse solo en
-documentación. Si además tienes una instalación 2026.0.5 en otra ruta, apunta
-`ALTAIR_HOME` hacia ella — el formato de proceso XML y el CLI se han mantenido
-estables entre versiones recientes, pero vuelve a correr
-`altair_check_connection` después de cambiarlo para confirmarlo.
+documentación.
 
 ## Cómo se conecta (no existe una "API de Altair Studio" pública)
 
