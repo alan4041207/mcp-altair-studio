@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "altair-studio": {
+      "command": "node",
+      "args": ["C:\\dev\\mcp-altair-studio-curso\\dist\\index.js"],
+      "env": {
+        "ALTAIR_HOME": "C:\\Program Files\\Altair\\RapidMiner\\AI Studio 2026.1.1",
+        "ALTAIR_DEFAULT_REPOSITORY": "Local Repository",
+        "ALTAIR_HTTP_BRIDGE_ENABLED": "true",
+        "ALTAIR_HTTP_BRIDGE_PORT": "8266"
+      }
+    }
+  }
+}

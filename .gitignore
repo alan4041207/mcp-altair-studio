@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.log
+.env
+build/
+.gradle/
+altair-http-bridge/build/

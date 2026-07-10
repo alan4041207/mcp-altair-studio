@@ -1,0 +1,67 @@
+// Builds the optional "MCP HTTP Bridge" extension for Altair AI Studio.
+//
+// This is a plain Gradle Java build (no Altair-specific plugin/template required):
+// it just needs Altair AI Studio's own jars on the compile classpath, which we pull
+// straight from a local installation via the ALTAIR_HOME property.
+//
+// Usage:
+//   gradle build -PaltairHome="C:\Program Files\Altair\RapidMiner\AI Studio 2026.1.1"
+//   gradle installExtension -PaltairHome="C:\Program Files\Altair\RapidMiner\AI Studio 2026.1.1"
+//
+// If -PaltairHome is omitted, it defaults to the path below (adjust for your machine).
+
+plugins {
+    id 'java'
+}
+
+group = 'com.mcpaltair'
+version = '0.1.0'
+
+def altairHome = project.hasProperty('altairHome')
+    ? project.property('altairHome')
+    : 'C:\\Program Files\\Altair\\RapidMiner\\AI Studio 2026.1.1'
+
+sourceCompatibility = JavaVersion.VERSION_17
+targetCompatibility = JavaVersion.VERSION_17
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Altair AI Studio's own jars (core + plugins) provide com.rapidminer.* classes.
+    // These are NOT published to Maven Central — they come from the local install.
+    compileOnly fileTree(dir: "${altairHome}/lib", include: '*.jar')
+    compileOnly fileTree(dir: "${altairHome}/lib/plugins", include: '*.jar')
+}
+
+jar {
+    archiveBaseName = 'mcp-http-bridge'
+    manifest {
+        attributes(
+            'Manifest-Version': '1.0',
+            'Implementation-Title': 'MCP HTTP Bridge',
+            'Implementation-Version': version,
+            'Implementation-Vendor': 'mcp-altair-studio',
+            'RapidMiner-Version': '12.1.1',
+            'RapidMiner-Type': 'RapidMiner_Extension',
+            'Extension-ID': 'mcp_http_bridge',
+            'Namespace': 'mcpbridge',
+            'Initialization-Class': 'com.mcpaltair.bridge.PluginInitMcpBridge'
+        )
+    }
+}
+
+// Copies the built extension jar into Altair AI Studio's user extensions folder.
+//
+// NOTE: confirmed by disassembling com/rapidminer/tools/plugin/Plugin.class from
+// rapidminer-studio-core-12.1.1.jar (string constants "getExtensionsDir",
+// ".AltairRapidMiner/shared/extensions", ".RapidMiner/extensions"): the directory
+// actually scanned on startup is "~/.AltairRapidMiner/AI Studio/shared/extensions"
+// — version-independent ("shared", not "<version>"), and NOT "~/.RapidMiner/extensions"
+// despite the batch script / installer living under a "RapidMiner" folder.
+tasks.register('installExtension', Copy) {
+    dependsOn jar
+    from jar.archiveFile
+    into "${System.getProperty('user.home')}/.AltairRapidMiner/AI Studio/shared/extensions"
+}

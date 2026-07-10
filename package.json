@@ -1,0 +1,26 @@
+{
+  "name": "mcp-altair-studio",
+  "version": "0.1.0",
+  "description": "MCP server to connect Claude to Altair AI Studio (RapidMiner) 2026.0.5 for data prep, ML, evaluation and automation workflows.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "mcp-altair-studio": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsc -p tsconfig.json --watch"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
