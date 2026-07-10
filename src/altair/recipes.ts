@@ -50,7 +50,15 @@ export function sourceOperator(
     return op(name, "read_csv", [
       { key: "csv_file", value: source.csvFile },
       { key: "column_separators", value: "," },
-      { key: "first_row_as_names", value: "true" },
+      // NOTE: "first_row_as_names" is a no-op on this operator (verified against a
+      // real Altair AI Studio 2026.1.1 install: the modern Belt-based "read_csv"
+      // class is com.rapidminer.operator.nio.CSVTableSource, whose actual header
+      // toggle is "use_header_row" — the older key is silently ignored, and the file
+      // is read as if it always has a header row regardless of this value). Fixed to
+      // the real key so this recipe's documented "assumes a header row" behavior
+      // actually holds; a CSV without a header will still lose its first row to this
+      // assumption (there is no header-less mode exposed by the MCP tool schemas).
+      { key: "use_header_row", value: "true" },
       { key: "encoding", value: "UTF-8" },
     ]);
   }
@@ -316,7 +324,12 @@ export function kMeansRecipe(
 ): RecipeResult {
   const operators: OperatorNode[] = [
     sourceOperator("Source", source),
-    op("KMeans", "k_means", [
+    // Namespaced explicitly: the bare "k_means" key resolves to the deprecated core
+    // com.rapidminer.operator.clustering.clusterer.KMeans, NOT the higher-priority
+    // Concurrency extension's BeltKMeans, despite the extension declaring priority=100
+    // (verified against a real install — see "concurrency:generate_id" finding in
+    // README's data-prep section for the same behavior on a different operator).
+    op("KMeans", "concurrency:k_means", [
       { key: "add_cluster_attribute", value: "true" },
       { key: "k", value: String(k) },
     ]),
@@ -338,7 +351,14 @@ export function associationRulesRecipe(
 ): RecipeResult {
   const operators: OperatorNode[] = [
     sourceOperator("Source", source),
-    op("FPGrowth", "fp_growth", [
+    // Namespaced explicitly: bare "fp_growth" resolves to the deprecated core
+    // com.rapidminer.operator.learner.associations.fpgrowth.FPGrowth, NOT the
+    // Concurrency extension's BeltFPGrowth, despite the extension's priority=100.
+    // Verified against a real install: the deprecated class doesn't even recognize
+    // the "input_format" parameter and silently drops every non-binominal column
+    // ("Removed N non-binominal attributes"), so a caller relying on the bare key
+    // would get an empty/wrong result on anything but already-binarized input.
+    op("FPGrowth", "concurrency:fp_growth", [
       { key: "min_support", value: String(minSupport) },
       { key: "find_min_number_of_itemsets", value: "false" },
     ]),

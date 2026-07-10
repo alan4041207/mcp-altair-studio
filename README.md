@@ -29,6 +29,25 @@ sí ofrece:
    RapidMiner) y lo ejecuta con el lanzador de línea de comandos incluido,
    `scripts\ai-studio-batch.bat -f <archivo>`. Está verificado de punta a
    punta (ver abajo) y no requiere instalar nada adicional.
+
+   **Limitación real confirmada de este modo (no es un bug del MCP, es del
+   lanzador batch de Altair AI Studio 2026.1.1):** cualquier resultado que
+   NO sea una tabla de datos (Performance Vector, Association Rules, etc.) se
+   pierde silenciosamente — se enruta al puerto "result N" del proceso pero
+   nunca se imprime. Se confirmó desensamblando
+   `com.rapidminer.launcher.CommandLineLauncher.runProcessAndQuit`: llama a
+   `Process.run()` y descarta el `IOContainer` devuelto sin pasarlo jamás a
+   `ResultService.logResult(...)`, pese a que el propio log dice
+   *"using stdout for logging results!"*. Esto afecta a `altair_train_classifier`
+   (el Performance Vector de la validación cruzada no se ve) y a cualquier uso
+   de `Create Association Rules` que no termine en una tabla. Mitigación usada
+   en este proyecto: para `altair_association_rules`/reglas de asociación,
+   exportar los itemsets frecuentes (que sí son tabulares, vía
+   `item_sets_to_data`) y calcular confidence/lift/conviction con las fórmulas
+   estándar fuera de Studio — ver `examples/market-basket-optimization/` para
+   un caso real completo. Este modo sí funciona sin problema para todo lo que
+   ya es una tabla (ExampleSet/Data Table): limpieza, normalización, PCA,
+   clustering con `add_cluster_attribute`, itemsets, etc.
 2. **Bridge HTTP opcional** (`altair-http-bridge/`): una pequeña extensión
    Java que se compila e instala en la carpeta de extensiones de Studio.
    Levanta un servidor HTTP en `localhost` **dentro** de la sesión de Studio
@@ -78,11 +97,43 @@ prefijos de namespace como `concurrency:`), la construcción de este proyecto:
     (incompatibilidad de tipos) — debe enrutarse al puerto de resultado
     exterior del proceso, donde el runner de batch lo imprime en stdout.
 
-Las recetas de limpiar/normalizar/dividir/PCA/reglas de asociación/k-Means
-reutilizan las mismas convenciones clásicas de puertos de ExampleSet
-confirmadas arriba, pero no se volvieron a ejecutar individualmente en esta
-sesión — si alguna reporta un operador/puerto desconocido, ver "Si algo falla"
-más abajo.
+Las recetas de limpiar/normalizar/dividir/PCA reutilizan las mismas
+convenciones clásicas de puertos de ExampleSet confirmadas arriba, pero no se
+volvieron a ejecutar individualmente en esta sesión — si alguna reporta un
+operador/puerto desconocido, ver "Si algo falla" más abajo.
+
+**Reglas de asociación y k-Means: verificados de punta a punta y dos bugs
+reales corregidos** (sesión de análisis Market Basket Optimization, ver
+`examples/market-basket-optimization/`):
+
+- `sourceOperator()` fijaba el parámetro `first_row_as_names` en `read_csv`,
+  pero ese parámetro **no existe** en el operador real que Altair AI Studio
+  2026.x usa para `read_csv` (`com.rapidminer.operator.nio.CSVTableSource`) —
+  se verificó ejecutándolo con ese valor en `false` contra un CSV sin
+  encabezado y comprobando que igual trataba la fila 1 como nombres de
+  columna (perdiendo una fila de datos real). El parámetro correcto es
+  `use_header_row`. Corregido en `recipes.ts`; documentado inline por qué.
+- `associationRulesRecipe()` y `kMeansRecipe()` usaban las claves de operador
+  sin namespace (`fp_growth`, `k_means`). Se verificó que **ambas resuelven a
+  la implementación central obsoleta** (`com.rapidminer.operator.learner
+  .associations.fpgrowth.FPGrowth` / `...clustering.clusterer.KMeans`), no a
+  la versión moderna de la extensión Concurrency (`BeltFPGrowth`/`BeltKMeans`)
+  pese a que esta última declara `priority=100` — la prioridad más alta NO
+  gana la resolución de la clave sin prefijo en esta instalación. Se confirmó
+  ejecutando `fp_growth` (sin prefijo) con `input_format="items in separate
+  columns"`: el operador ni reconoce ese parámetro ("unknown for operator")
+  y además elimina en silencio cualquier columna no binominal ("Removed N
+  non-binominal attributes"). Corregido a `concurrency:fp_growth` y
+  `concurrency:k_means` explícitamente en `recipes.ts`.
+- El operador `De-Pivot` (`de_pivot`) requiere que el parámetro
+  `attribute_name` se pase como **lista** (`{key: nombre_columna_resultado,
+  value: regex_de_atributos_fuente}`), no como string simple — el nombre del
+  parámetro coincidía pero el tipo no, y usarlo como string simple produce 0
+  filas de salida sin ningún error. Confirmado desensamblando
+  `Attribute2ExamplePivoting.getParameterTypes()`. No se usa en las recetas
+  actuales de este proyecto (FP-Growth consume el formato ancho directamente,
+  ver el ejemplo), pero queda documentado aquí porque es la ruta clásica que
+  cualquier tutorial de RapidMiner asume.
 
 **No verificado**: Gradient Boosted Trees (la extensión `H2O` está instalada
 en esta máquina, pero su clave de operador no se confirmó).
@@ -162,9 +213,9 @@ hasta que completes el paso 2 y reinicies Studio).
 | `altair_generate_attribute` | preparación | columna derivada vía expresión |
 | `altair_split_data` | preparación | partición train/test |
 | `altair_descriptive_stats` | exploración | media/mín/máx/desv. estándar/mediana/conteo |
-| `altair_train_classifier` | ML | árbol de decisión/random forest/naive bayes/k-NN/SVM/regresión logística/red neuronal/GBT + validación cruzada k-fold |
-| `altair_cluster_kmeans` | ML | k-Means |
-| `altair_association_rules` | ML | FP-Growth + reglas |
+| `altair_train_classifier` | ML | árbol de decisión/random forest/naive bayes/k-NN/SVM/regresión logística/red neuronal/GBT + validación cruzada k-fold. **El Performance Vector no se imprime en modo batch** (ver limitación en "Cómo se conecta") — la tool devuelve el log crudo, que no contendrá las métricas. |
+| `altair_cluster_kmeans` | ML | k-Means (usa `concurrency:k_means`, verificado) |
+| `altair_association_rules` | ML | FP-Growth + reglas. Requiere datos ya binarizados (item presente/ausente); las reglas mismas tampoco se imprimen en modo batch — ver `examples/market-basket-optimization/` para el patrón de mitigación (itemsets tabulares + fórmulas estándar). |
 | `altair_reduce_dimensions_pca` | ML | PCA |
 | `altair_run_process_file` | automatización | ejecuta cualquier `.rmp` guardado en modo headless |
 | `altair_run_operator_chain` | automatización | **vía de escape**: cualquier grafo de operadores que armes (DBSCAN, clustering jerárquico, conexiones a bases de datos, scripting Python/R, operadores de Hugging Face/LLM, Optimize Parameters, Loop Files, ...) |
@@ -181,6 +232,17 @@ se le pasa cualquier clave de clase de operador + parámetros + cableado de
 puertos, y lo ejecuta. Arma el proceso una vez en la GUI de Studio, usa
 Process ▸ Export Process para ver las claves de clase/puerto exactas, y
 pásaselas directamente a la tool.
+
+## Ejemplos
+
+`examples/market-basket-optimization/` — análisis completo de reglas de
+asociación (Market Basket Optimization) sobre un dataset real de 7 501
+transacciones: flujo construido y ejecutado contra Altair AI Studio, 959
+itemsets frecuentes, 249 reglas con support/confidence/lift/conviction/
+leverage/coverage, y un reporte HTML autocontenido con hallazgos de negocio.
+Es el caso real que motivó los tres bugs corregidos arriba (`use_header_row`,
+`concurrency:fp_growth`, la limitación de resultados no tabulares en modo
+batch) — ver su propio `README.md` para el detalle completo.
 
 ## Si algo falla
 
@@ -221,5 +283,7 @@ src/
   tools/                      registro de tools MCP (esquemas zod + handlers)
   index.ts                    punto de entrada del servidor MCP (transporte stdio)
 altair-http-bridge/           extensión Java opcional (ver su propio README)
+examples/
+  market-basket-optimization/ caso real: reglas de asociación end-to-end (ver su README)
 claude-desktop-config.example.json
 ```
