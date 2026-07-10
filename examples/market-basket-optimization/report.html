@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Market Basket Optimization — Altair AI Studio</title>
+<style>
+  :root {
+    --surface-1:      #fcfcfb;
+    --page:           #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --grid:           #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-1:       #2a78d6;
+    --series-2:       #1baf7a;
+    --seq-100:        #cde2fb;
+    --seq-450:        #2a78d6;
+    --seq-700:        #0d366b;
+    --good:           #0ca30c;
+    --warning:        #fab219;
+    --serious:        #ec835a;
+    --critical:       #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+      --surface-1:      #1a1a19;
+      --page:           #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --grid:           #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --series-1:       #3987e5;
+      --series-2:       #199e70;
+      --seq-100:        #184f95;
+      --seq-450:        #3987e5;
+      --seq-700:        #9ec5f4;
+    }
+  }
+  :root[data-theme="dark"] {
+    --surface-1:      #1a1a19;
+    --page:           #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-1:       #3987e5;
+    --series-2:       #199e70;
+    --seq-100:        #184f95;
+    --seq-450:        #3987e5;
+    --seq-700:        #9ec5f4;
+  }
+  :root[data-theme="light"] {
+    --surface-1:      #fcfcfb;
+    --page:           #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --grid:           #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-1:       #2a78d6;
+    --series-2:       #1baf7a;
+    --seq-100:        #cde2fb;
+    --seq-450:        #2a78d6;
+    --seq-700:        #0d366b;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--text-primary);
+  }
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+  header.hero {
+    padding: 28px 0 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+  }
+  h1 {
+    font-size: 1.65rem;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .subtitle {
+    color: var(--text-secondary);
+    font-size: 0.98rem;
+    max-width: 70ch;
+  }
+  .badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+  .badge {
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    background: var(--surface-1);
+  }
+  nav.toc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin: 18px 0 8px;
+    font-size: 0.83rem;
+  }
+  nav.toc a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--baseline);
+  }
+  nav.toc a:hover { color: var(--series-1); }
+
+  section {
+    margin: 40px 0;
+    scroll-margin-top: 16px;
+  }
+  h2 {
+    font-size: 1.2rem;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  h2 .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    background: var(--series-1);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+  h3 {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    margin: 22px 0 8px;
+  }
+  p { line-height: 1.6; color: var(--text-secondary); font-size: 0.93rem; }
+  .lead { color: var(--text-primary); font-size: 0.97rem; }
+  strong { color: var(--text-primary); }
+  code {
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  caption { caption-side: top; text-align: left; font-size: 0.8rem; color: var(--text-muted); padding-bottom: 8px; }
+  th, td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--grid);
+    font-variant-numeric: tabular-nums;
+  }
+  th {
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; }
+  .tablewrap { overflow-x: auto; border-radius: 10px; }
+
+  .opflow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .opstep {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px dashed var(--grid);
+  }
+  .opstep:last-child { border-bottom: none; }
+  .opdot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--series-1);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 700;
+  }
+  .opname { font-weight: 600; font-size: 0.92rem; color: var(--text-primary); }
+  .opkey { font-family: ui-monospace, monospace; font-size: 0.78rem; color: var(--series-1); margin-left: 8px; }
+  .opdesc { font-size: 0.85rem; color: var(--text-secondary); margin-top: 3px; }
+
+  .barchart { display: flex; flex-direction: column; gap: 10px; }
+  .barrow { display: grid; grid-template-columns: 150px 1fr 64px; align-items: center; gap: 10px; }
+  .barlabel { font-size: 0.82rem; color: var(--text-secondary); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bartrack { background: var(--grid); border-radius: 4px; height: 14px; position: relative; }
+  .barfill { height: 100%; border-radius: 4px; background: var(--series-1); }
+  .barval { font-size: 0.8rem; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+  .rulebar-label { font-size: 0.8rem; text-align: right; }
+  .rulebar-label .arrow { color: var(--text-muted); }
+
+  .metricgrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .metriccard {
+    border: 1px solid var(--border);
+    background: var(--surface-1);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .metriccard h4 {
+    margin: 0 0 6px;
+    font-size: 0.92rem;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .metriccard p { font-size: 0.82rem; margin: 4px 0; }
+  .metriccard .formula { font-family: ui-monospace, monospace; font-size: 0.78rem; background: var(--page); padding: 6px 8px; border-radius: 6px; margin: 6px 0; border: 1px solid var(--border); }
+
+  .callout {
+    border-left: 3px solid var(--series-1);
+    background: var(--surface-1);
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px;
+    font-size: 0.87rem;
+    color: var(--text-secondary);
+  }
+  .callout.warn { border-left-color: var(--warning); }
+  .callout.crit { border-left-color: var(--critical); }
+  .callout.good { border-left-color: var(--good); }
+  .callout strong { color: var(--text-primary); }
+
+  ul.findings { padding-left: 20px; }
+  ul.findings li { margin-bottom: 8px; font-size: 0.9rem; color: var(--text-secondary); line-height: 1.55; }
+  ul.findings li strong { color: var(--text-primary); }
+
+  .grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 720px) {
+    .grid2 { grid-template-columns: 1fr; }
+    .barrow { grid-template-columns: 100px 1fr 52px; }
+  }
+
+  footer {
+    margin-top: 50px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>Market Basket Optimization con Altair AI Studio 2026.1.1</h1>
+    <div class="subtitle">
+      Análisis de reglas de asociación sobre <code>Market_Basket_Optimisation.csv</code> —
+      flujo construido, ejecutado y verificado de punta a punta contra una instalación real
+      de Altair AI Studio (motor RapidMiner 12.1.1), vía MCP.
+    </div>
+    <div class="badges">
+      <span class="badge">7 501 transacciones</span>
+      <span class="badge">114 productos con soporte ≥ 0.4%</span>
+      <span class="badge">959 itemsets frecuentes</span>
+      <span class="badge">249 reglas (confianza ≥ 0.2)</span>
+      <span class="badge">FP-Growth + cálculo verificado de reglas</span>
+    </div>
+    <nav class="toc">
+      <a href="#objetivo">1. Objetivo</a>
+      <a href="#dataset">2. Dataset</a>
+      <a href="#prep">3. Preparación</a>
+      <a href="#flujo">4. Flujo</a>
+      <a href="#parametros">5. Parámetros</a>
+      <a href="#resultados">6. Resultados</a>
+      <a href="#indicadores">7. Indicadores</a>
+      <a href="#negocio">8. Hallazgos de negocio</a>
+      <a href="#recomendaciones">9. Recomendaciones</a>
+      <a href="#limitaciones">10. Limitaciones</a>
+      <a href="#siguientes">11. Próximos pasos</a>
+    </nav>
+  </header>
+
+  <section id="objetivo">
+    <h2><span class="num">1</span> Objetivo del análisis</h2>
+    <p class="lead">
+      Identificar patrones de compra conjunta ("qué se compra junto con qué") en un supermercado
+      a partir de 7 501 tickets de compra, usando <strong>reglas de asociación (FP-Growth)</strong>
+      dentro de Altair AI Studio, y traducir los patrones estadísticamente sólidos en
+      <strong>recomendaciones accionables</strong>: promociones cruzadas, ubicación en tienda,
+      combos y bundles.
+    </p>
+  </section>
+
+  <section id="dataset">
+    <h2><span class="num">2</span> Descripción del dataset</h2>
+    <p>
+      El archivo <code>Market_Basket_Optimisation.csv</code> contiene
+      <strong>7 501 filas</strong>, cada una representando <strong>una transacción</strong>
+      (un ticket de compra). No tiene fila de encabezado: la primera fila ya es una
+      transacción real de 20 productos. Cada fila tiene un número variable de columnas
+      (de 1 a 20), separadas por comas — el número de columnas de una fila es simplemente
+      la cantidad de productos que esa persona compró; las posiciones sobrantes quedan vacías.
+    </p>
+    <div class="card">
+      <strong>Validaciones realizadas antes de modelar:</strong>
+      <ul class="findings" style="margin-top:10px">
+        <li><strong>Encabezado:</strong> se confirmó que el archivo NO tiene encabezado —
+          leerlo con la opción por defecto (que asume encabezado) descarta silenciosamente
+          la primera transacción real, tratándola como nombres de columna. Se verificó
+          leyendo con <code>use_header_row=false</code> y comprobando que el archivo de
+          salida conserva las 7 501 filas.</li>
+        <li><strong>Valores nulos / campos vacíos:</strong> las "casillas vacías" no son
+          errores de datos — son <em>huecos estructurales</em> esperados, porque las
+          transacciones tienen distinto número de productos (entre 1 y 20). No se trata
+          como dato faltante a imputar, sino como "sin producto en esa posición".</li>
+        <li><strong>Formato de producto:</strong> nombres de producto consistentes en
+          minúsculas (p. ej. <code>mineral water</code>, <code>frozen vegetables</code>),
+          sin necesidad de normalización adicional de texto.</li>
+        <li><strong>Distintos productos:</strong> 114 productos distintos alcanzan un soporte
+          ≥ 0.4% (mínimo usado para minería de itemsets); el catálogo completo es algo mayor
+          pero esos productos son demasiado infrecuentes para generar reglas fiables.</li>
+      </ul>
+    </div>
+
+    <h3>Top 12 productos más comprados (soporte = % de tickets que lo incluyen)</h3>
+    <div class="card">
+      <div class="barchart" id="chart-top-products"></div>
+    </div>
+  </section>
+
+  <section id="prep">
+    <h2><span class="num">3</span> Preparación de datos</h2>
+    <p>
+      El requerimiento de que <em>"cada fila sea una transacción y cada producto comprado
+      sea un ítem"</em> ya lo cumple el archivo tal cual — es el llamado
+      <strong>formato transaccional ancho</strong> ("items en columnas separadas"). El único
+      trabajo de preparación fue <strong>leerlo correctamente</strong>:
+    </p>
+    <ul class="findings">
+      <li><strong>Lectura sin encabezado</strong> (<code>use_header_row=false</code>),
+        separador coma, codificación UTF-8. Altair Studio nombra las columnas
+        automáticamente <code>att1…att20</code>.</li>
+      <li><strong>Sin imputación de vacíos</strong>: los huecos se dejan como
+        "producto ausente en esa posición", que es exactamente su significado real.</li>
+    </ul>
+
+    <div class="callout good">
+      <strong>Decisión técnica clave — verificada, no asumida:</strong> el operador
+      <code>FP-Growth</code> de Altair AI Studio (extensión Concurrency, versión "Belt")
+      tiene un parámetro <code>input_format = "items in separate columns"</code> que consume
+      <strong>directamente</strong> el formato ancho (<code>att1…att20</code> con nombres de
+      producto), sin pasar por un <em>one-hot encoding</em> previo. Esto se confirmó
+      ejecutando el operador contra el archivo real y comprobando que los itemsets frecuentes
+      resultantes tenían soportes idénticos a las estadísticas públicas conocidas de este
+      dataset (p. ej. <code>mineral water</code> ≈ 23.8%, <code>eggs</code> ≈ 18.0%).
+    </div>
+
+    <p style="margin-top:14px">
+      <strong>Alternativa clásica (evaluada y descartada por innecesaria):</strong> el
+      enfoque de libro de texto — <code>Generate ID → De-Pivot → Pivot → Numérico a
+      Binominal</code> para construir una matriz "ítem por columna" (0/1) — también se
+      construyó y verificó operador por operador contra esta instalación (incluyendo el
+      descubrimiento de que <code>De-Pivot</code> necesita el parámetro de lista
+      <code>attribute_name</code>, no un string simple). Se decidió no usarlo en el flujo
+      final porque agrega 4 operadores y un ensanchamiento de la tabla a ~120 columnas sin
+      aportar nada que <code>input_format</code> no resuelva ya de forma nativa — más
+      operadores sin beneficio es complejidad innecesaria.
+    </p>
+  </section>
+
+  <section id="flujo">
+    <h2><span class="num">4</span> Flujo construido en Altair Studio</h2>
+    <p>Proceso final, verificado de punta a punta contra el archivo real:</p>
+    <div class="card">
+      <div class="opflow" id="opflow"></div>
+    </div>
+  </section>
+
+  <section id="parametros">
+    <h2><span class="num">5</span> Configuración del modelo</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Parámetro</th><th>Valor usado</th><th>Justificación</th></tr></thead>
+        <tbody>
+          <tr><td>Algoritmo</td><td>FP-Growth</td><td>Más eficiente que Apriori en RapidMiner/Altair para catálogos de ~120 ítems y 7 501 transacciones; es el único de los dos disponible de forma nativa y no obsoleta en esta instalación (Apriori clásico no está entre los operadores registrados; FP-Growth "Belt" de Concurrency sí).</td></tr>
+          <tr><td>Soporte mínimo</td><td>0.4% (0.004)</td><td>Con ~7 501 tickets, 0.4% equivale a ≥ ~30 ocurrencias — suficiente para no ser ruido estadístico, pero bajo para capturar combos de nicho (p. ej. <code>light cream + chicken</code>, soporte 0.45%) que son justamente los más interesantes para marketing dirigido.</td></tr>
+          <tr><td>Confianza mínima</td><td>20% (0.2)</td><td>Regla estándar de la industria para retail: por debajo de 20% la regla es "puede pasar cualquier cosa" y no sirve para decisiones. Se aplicó como filtro tras calcular todas las reglas candidatas.</td></tr>
+          <tr><td>Ítems por itemset</td><td>1 a 4 (sin tope superior forzado)</td><td>Permite ver tanto productos individuales frecuentes como combos de hasta 4 artículos.</td></tr>
+          <tr><td>Reglas generadas</td><td>1→1 (un antecedente, un consecuente)</td><td>Es el formato más accionable para señalización en tienda y promociones cruzadas ("si compra A, sugerir B"); se documentan itemsets de 3–4 ítems por separado para combos/bundles.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="resultados">
+    <h2><span class="num">6</span> Resultados: reglas de asociación</h2>
+
+    <h3>Top 15 reglas por Lift (fuerza estadística real, no solo coincidencia)</h3>
+    <div class="card">
+      <div class="barchart" id="chart-top-lift"></div>
+    </div>
+
+    <h3 style="margin-top:28px">Tabla completa — top reglas por Lift</h3>
+    <div class="tablewrap">
+      <table id="table-lift">
+        <caption>Reglas ordenadas por Lift descendente. Confianza ≥ 20% en todas.</caption>
+        <thead>
+          <tr><th>Si compra…</th><th>…entonces compra</th><th class="num">Soporte</th><th class="num">Confianza</th><th class="num">Lift</th><th class="num">Convicción</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:28px">Top reglas por Confianza</h3>
+    <p>Estas reglas aciertan con más frecuencia, pero varias involucran <code>mineral water</code>
+      (el producto más comprado del catálogo) — su Lift es más moderado porque una fracción
+      grande de esa confianza ya se explica por lo popular que es el agua mineral por sí sola
+      (ver sección 7).</p>
+    <div class="tablewrap">
+      <table id="table-conf">
+        <thead>
+          <tr><th>Si compra…</th><th>…entonces compra</th><th class="num">Soporte</th><th class="num">Confianza</th><th class="num">Lift</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="indicadores">
+    <h2><span class="num">7</span> Interpretación de los indicadores</h2>
+    <div class="metricgrid">
+      <div class="metriccard">
+        <h4><span class="swatch" style="background:var(--series-1)"></span>Support (Soporte)</h4>
+        <div class="formula">support(A→B) = P(A ∩ B)</div>
+        <p><strong>Qué es:</strong> en qué fracción de todos los tickets aparecen A y B juntos.</p>
+        <p><strong>Regla débil/fuerte:</strong> por debajo de ~0.3–0.5% en este dataset es
+          ruido (menos de ~25 tickets); no hay un umbral universal — depende del volumen
+          total de transacciones.</p>
+        <p><strong>Riesgo de usarlo solo:</strong> los productos más vendidos (agua mineral,
+          huevos) aparecerán en las combinaciones de mayor soporte casi por definición,
+          aunque no exista relación real entre ellos.</p>
+      </div>
+      <div class="metriccard">
+        <h4><span class="swatch" style="background:var(--series-2)"></span>Confidence (Confianza)</h4>
+        <div class="formula">confidence(A→B) = P(B | A) = support(A∩B) / support(A)</div>
+        <p><strong>Qué es:</strong> de las veces que se compró A, en qué % también se compró B.</p>
+        <p><strong>Regla débil/fuerte:</strong> &lt;20% poco útil; 20–40% moderada;
+          &gt;40% fuerte para retail (rara vez se ve &gt;60% con catálogos grandes).</p>
+        <p><strong>Riesgo de usarlo solo:</strong> si B es un producto muy popular (p. ej.
+          agua mineral, comprada en 24% de todos los tickets), la confianza de
+          <em>cualquier</em> A→B será alta solo por la popularidad de B, no por una
+          relación real — por eso siempre se debe mirar junto al Lift.</p>
+      </div>
+      <div class="metriccard">
+        <h4><span class="swatch" style="background:#eda100"></span>Lift</h4>
+        <div class="formula">lift(A→B) = confidence(A→B) / support(B)</div>
+        <p><strong>Qué es:</strong> cuántas veces más probable es comprar B sabiendo que se
+          compró A, comparado con comprar B al azar. Lift = 1 → independencia (A no dice
+          nada sobre B); &gt;1 → asociación positiva; &lt;1 → negativa (se compran
+          mutuamente excluyentes).</p>
+        <p><strong>Regla débil/fuerte:</strong> 1.0–1.5 débil/casi trivial; 1.5–3 moderada;
+          &gt;3 fuerte y accionable (p. ej. <code>light cream → chicken</code>, Lift 4.84).</p>
+        <p><strong>Riesgo de usarlo solo:</strong> un Lift alto con soporte muy bajo (2–3
+          tickets) puede ser una casualidad estadística sin relevancia comercial —
+          siempre cruzar con soporte mínimo.</p>
+      </div>
+      <div class="metriccard">
+        <h4><span class="swatch" style="background:#4a3aa7"></span>Conviction (Convicción)</h4>
+        <div class="formula">conviction(A→B) = (1 − support(B)) / (1 − confidence(A→B))</div>
+        <p><strong>Qué es:</strong> cuánto "fallaría" la regla si A y B fueran independientes,
+          comparado con qué tan seguido realmente falla. Conviction = 1 → independencia;
+          &gt;1 → dependencia positiva; valor infinito cuando confidence = 100%.</p>
+        <p><strong>Regla débil/fuerte:</strong> valores cercanos a 1 (como los de nuestras
+          reglas top, ~1.2–1.5) indican asociación real pero moderada en términos de "qué
+          tan sorprendente sería el fallo"; conviction &gt; 2 sería excepcional en retail.</p>
+        <p><strong>Riesgo de usarlo solo:</strong> es menos intuitivo para un público de
+          negocio que Lift o Confidence — útil como desempate técnico, no como titular de
+          un reporte ejecutivo.</p>
+      </div>
+      <div class="metriccard">
+        <h4><span class="swatch" style="background:#e34948"></span>Leverage</h4>
+        <div class="formula">leverage(A→B) = support(A∩B) − support(A)·support(B)</div>
+        <p><strong>Qué es:</strong> la diferencia absoluta entre la co-ocurrencia observada
+          y la esperada si A y B fueran independientes. A diferencia del Lift (una razón),
+          es una diferencia en puntos de soporte.</p>
+        <p><strong>Regla débil/fuerte:</strong> valores típicos aquí son pequeños (0.001–0.01)
+          porque los soportes individuales ya son bajos; se usa para <strong>priorizar por
+          volumen real de tickets afectados</strong>, no solo por la fuerza relativa.</p>
+        <p><strong>Riesgo de usarlo solo:</strong> favorece productos populares (leverage
+          alto no implica Lift alto) — un leverage moderado con Lift muy alto puede ser más
+          valioso que un leverage algo mayor con Lift cercano a 1.</p>
+      </div>
+      <div class="metriccard">
+        <h4><span class="swatch" style="background:#eb6834"></span>Coverage</h4>
+        <div class="formula">coverage(A→B) = support(A)</div>
+        <p><strong>Qué es:</strong> a cuántos tickets aplica potencialmente la regla (cuántos
+          contienen el antecedente), independientemente de si termina cumpliéndose.</p>
+        <p><strong>Regla débil/fuerte:</strong> coverage alto + confidence baja = regla
+          "amplia pero poco fiable"; coverage bajo + confidence alta = regla "de nicho pero
+          certera" — ambas son útiles, para objetivos distintos (alcance vs. precisión).</p>
+        <p><strong>Riesgo de usarlo solo:</strong> una regla con gran coverage pero Lift ≈ 1
+          no aporta nada nuevo — solo dice que el antecedente es un producto muy comprado.</p>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:18px">
+      <strong>Regla estadísticamente interesante ≠ regla útil para el negocio:</strong> una
+      regla con Lift alto pero soporte de 3–4 tickets (0.04% de las transacciones) es
+      matemáticamente "interesante" pero comercialmente insignificante — no vale la pena
+      un rediseño de góndola por 4 clientes. Las recomendaciones en la sección 9 priorizan
+      reglas con soporte ≥ 0.5% <em>y</em> Lift ≥ 2, que es donde ambas condiciones se
+      cumplen a la vez.
+    </div>
+  </section>
+
+  <section id="negocio">
+    <h2><span class="num">8</span> Hallazgos de negocio</h2>
+    <ul class="findings">
+      <li><strong>¿Qué productos suelen comprarse juntos?</strong> El patrón más fuerte y
+        más citado en este dataset es <code>light cream → chicken</code> (Lift 4.84):
+        quien compra crema de leche tiene casi 5× más probabilidad de llevar pollo que un
+        cliente al azar. También destacan <code>pasta → escalope</code> (Lift 4.70) y
+        <code>pasta → shrimp</code> (Lift 4.51) — sugiere un patrón de "noche de cena
+        especial" (pasta + proteína premium).</li>
+      <li><strong>Clúster "salsa de tomate → carne/pasta":</strong> <code>tomato sauce →
+        ground beef</code> (Lift 3.84) y <code>tomato sauce → spaghetti</code> (Lift 2.55,
+        confianza 44%) apuntan a compradores armando una receta completa de pasta boloñesa
+        en el mismo ticket.</li>
+      <li><strong>Clúster "condimentos → carne":</strong> <code>herb & pepper → ground
+        beef</code> (Lift 3.29, soporte 1.6% — el más robusto en volumen de todas las
+        reglas de alto Lift) y <code>pepper → ground beef</code> (Lift 2.51) — señal clara
+        y con buen volumen para cross-merchandising.</li>
+      <li><strong>El "efecto agua mineral":</strong> 6 de las 10 reglas con mayor confianza
+        tienen <code>mineral water</code> como consecuente, con confianzas de 40–49% pero
+        Lift de solo 1.7–2.0. Esto NO es una relación de compra fuerte — es simplemente que
+        el agua mineral está en 1 de cada 4 tickets, así que aparece asociada a casi
+        cualquier cosa. Estas reglas son estadísticamente válidas pero de bajo valor
+        diferencial para el negocio.</li>
+      <li><strong>Combos vegetarianos:</strong> <code>frozen vegetables</code> aparece como
+        consecuente frecuente de <code>tomatoes</code>, <code>shrimp</code> y
+        <code>parmesan cheese</code> — perfil de comprador orientado a cocina saludable /
+        casera.</li>
+    </ul>
+  </section>
+
+  <section id="recomendaciones">
+    <h2><span class="num">9</span> Recomendaciones comerciales</h2>
+    <div class="grid2">
+      <div class="card">
+        <h4 style="margin-top:0">Promociones cruzadas</h4>
+        <p style="font-size:0.86rem">
+          <code>herb & pepper + ground beef</code> (mejor combinación de Lift alto y volumen
+          real): descuento 2×1 en condimentos para carne al llevar carne molida.
+          <code>tomato sauce + spaghetti/ground beef</code>: combo "noche de pasta".
+        </p>
+      </div>
+      <div class="card">
+        <h4 style="margin-top:0">Ubicación en tienda física</h4>
+        <p style="font-size:0.86rem">
+          Acercar <code>ground beef</code> a la sección de especias/condimentos
+          (<code>herb & pepper</code>, <code>pepper</code>, <code>tomato sauce</code>).
+          Acercar <code>escalope</code> y <code>shrimp</code> al pasillo de pasta.
+        </p>
+      </div>
+      <div class="card">
+        <h4 style="margin-top:0">Combos / bundles</h4>
+        <p style="font-size:0.86rem">
+          Kit "cena especial": <code>light cream + chicken</code> o
+          <code>pasta + shrimp/escalope</code> como combo de precio fijo — apunta a
+          ocasiones de consumo, no a compra rutinaria.
+        </p>
+      </div>
+      <div class="card">
+        <h4 style="margin-top:0">Mayor potencial comercial</h4>
+        <p style="font-size:0.86rem">
+          Reglas con Lift ≥ 3 <em>y</em> soporte ≥ 0.5%: <code>herb & pepper→ground beef</code>,
+          <code>tomato sauce→ground beef</code>, <code>mushroom cream sauce→escalope</code>.
+          Combinan fuerza estadística con volumen suficiente para justificar inversión.
+        </p>
+      </div>
+    </div>
+
+    <div class="callout warn" style="margin-top:18px">
+      <strong>Reglas a descartar pese a buenos indicadores técnicos:</strong> todas las
+      reglas <code>X → mineral water</code> con soporte &lt; 1% — aunque su confianza supera
+      el 40%, su Lift bajo (1.7–2.0) indica que la asociación es mayormente un artefacto de
+      la altísima popularidad del agua mineral, no una relación de compra real. Promocionar
+      agua mineral junto a "cualquier cosa" no generará incremental de ventas relevante.
+      Del mismo modo, itemsets de 4 ítems con soporte cercano al mínimo (0.4%, ~30 tickets)
+      deben tratarse como hipótesis a validar con más datos, no como reglas de decisión.
+    </div>
+  </section>
+
+  <section id="limitaciones">
+    <h2><span class="num">10</span> Limitaciones del modelo</h2>
+    <ul class="findings">
+      <li><strong>Ventana temporal desconocida:</strong> el dataset no indica fechas ni
+        estacionalidad — las reglas reflejan el promedio del período capturado, no
+        variaciones por temporada o día de la semana.</li>
+      <li><strong>Sin datos de cliente:</strong> no hay ID de cliente ni ticket promedio en
+        moneda — las reglas son a nivel de "canasta", no de perfil de comprador recurrente.</li>
+      <li><strong>Reglas limitadas a pares (1→1):</strong> por simplicidad y por ser el
+        formato más accionable en señalización, no se generaron reglas con antecedentes de
+        2+ ítems (p. ej. <code>{A,B}→C</code>); los itemsets de 3–4 ítems existen en los
+        datos (259 y 8 respectivamente) pero no se convirtieron a reglas formales en esta
+        entrega.</li>
+      <li><strong>Limitación técnica real de la plataforma (hallazgo de esta sesión):</strong>
+        el operador nativo <code>Create Association Rules</code> de Altair AI Studio genera
+        un objeto especial ("Association Rules") que <strong>no se serializa a CSV ni se
+        imprime en el log</strong> al ejecutarse en modo headless/batch en esta versión
+        (2026.1.1) — se confirmó revisando el bytecode del lanzador
+        (<code>CommandLineLauncher.runProcessAndQuit</code> nunca invoca
+        <code>ResultService.logResult</code> sobre el resultado del proceso). Por eso las
+        249 reglas de este reporte se calcularon aplicando las fórmulas estándar de
+        confidence/lift/conviction/leverage directamente sobre los soportes de itemsets que
+        <strong>sí</strong> entrega Altair Studio de forma verificada (vía
+        <code>item_sets_to_data</code>) — son matemáticamente idénticas a lo que el operador
+        nativo habría calculado, pero el paso de generación se hizo fuera de Studio por esta
+        limitación de la plataforma en modo batch. Esta limitación no aplica si se corre el
+        proceso interactivamente dentro de la GUI de Studio.</li>
+    </ul>
+  </section>
+
+  <section id="siguientes">
+    <h2><span class="num">11</span> Próximos pasos sugeridos</h2>
+    <ul class="findings">
+      <li>Extender a reglas con antecedentes multi-ítem (2→1) sobre los 259 itemsets de
+        tamaño 3 ya minados, para descubrir combos más específicos de "si compra A y B,
+        también compra C".</li>
+      <li>Cruzar con datos de margen/precio por producto para priorizar recomendaciones por
+        impacto en rentabilidad, no solo por Lift.</li>
+      <li>Si se dispone de fecha por ticket, repetir el análisis por estación/día de semana
+        para detectar reglas estacionales (p. ej. combos de parrillada en verano).</li>
+      <li>Validar en la GUI interactiva de Altair Studio (no en batch) para confirmar que
+        <code>Create Association Rules</code> sí exporta correctamente en modo escritorio,
+        y usarlo como segunda fuente de verificación de las 249 reglas aquí calculadas.</li>
+      <li>Diseñar un experimento A/B en tienda (ubicación cruzada
+        <code>herb & pepper</code> / <code>ground beef</code>) para confirmar el impacto
+        real en ventas antes de escalar a todo el catálogo de reglas.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Generado a partir de la ejecución real del flujo en Altair AI Studio 2026.1.1
+    (motor RapidMiner 12.1.1) sobre <code>Market_Basket_Optimisation.csv</code>.
+    Soportes de itemsets calculados por el operador nativo FP-Growth (Concurrency, Belt);
+    reglas derivadas de esos soportes con las fórmulas estándar de minería de reglas de
+    asociación. Archivos: <code>mbo_frequent_itemsets.csv</code>,
+    <code>mbo_association_rules.csv</code>.
+  </footer>
+
+</div>
+
+<script>
+const topProducts = [
+  {"name":"mineral water","support":0.23836821757099053},
+  {"name":"eggs","support":0.17970937208372217},
+  {"name":"spaghetti","support":0.17411011865084655},
+  {"name":"french fries","support":0.1709105452606319},
+  {"name":"chocolate","support":0.1638448206905746},
+  {"name":"green tea","support":0.13211571790427942},
+  {"name":"milk","support":0.12958272230369283},
+  {"name":"ground beef","support":0.09825356619117451},
+  {"name":"frozen vegetables","support":0.09532062391681109},
+  {"name":"pancakes","support":0.09505399280095987},
+  {"name":"burgers","support":0.0871883748833489},
+  {"name":"cake","support":0.08105585921877083}
+];
+
+const topByLift = [
+  {"a":"light cream","b":"chicken","support":0.004532728969470737,"confidence":0.29059829059829057,"lift":4.8439506172839497,"conviction":1.3250715165688751},
+  {"a":"pasta","b":"escalope","support":0.0058658845487268366,"confidence":0.3728813559322034,"lift":4.7008118501637943,"conviction":1.4681069551086883},
+  {"a":"pasta","b":"shrimp","support":0.0050659912011731768,"confidence":0.32203389830508472,"lift":4.5066721477358964,"conviction":1.369600719904013},
+  {"a":"whole wheat pasta","b":"olive oil","support":0.0079989334755365959,"confidence":0.27149321266968329,"lift":4.1224100976422964,"conviction":1.2822696104287545},
+  {"a":"tomato sauce","b":"ground beef","support":0.0053326223170243967,"confidence":0.37735849056603771,"lift":3.8406594813240829,"conviction":1.4482594239959923},
+  {"a":"mushroom cream sauce","b":"escalope","support":0.0057325689908012262,"confidence":0.30069930069930068,"lift":3.7908326967150501,"conviction":1.3165684575389947},
+  {"a":"herb & pepper","b":"ground beef","support":0.015997866951073192,"confidence":0.32345013477088952,"lift":3.2919938411349281,"conviction":1.3328602667054752},
+  {"a":"almonds","b":"burgers","support":0.0051993067590987872,"confidence":0.25490196078431376,"lift":2.9235773820231454,"conviction":1.2250892863407685},
+  {"a":"parmesan cheese","b":"frozen vegetables","support":0.0054659378749500062,"confidence":0.27516778523489926,"lift":2.8867602196461255,"conviction":1.2481224725592142},
+  {"a":"whole wheat pasta","b":"milk","support":0.0098653512864951345,"confidence":0.33484162895927605,"lift":2.5839990317114503,"conviction":1.3085865195298223},
+  {"a":"tomato sauce","b":"spaghetti","support":0.006265831222503666,"confidence":0.4433962264150943,"lift":2.5466424918373831,"conviction":1.4838021597120383},
+  {"a":"pepper","b":"ground beef","support":0.0065324623383548859,"confidence":0.24623115577889446,"lift":2.5060785610549354,"conviction":1.1963169355197083},
+  {"a":"tomatoes","b":"frozen vegetables","support":0.016131182508998799,"confidence":0.23586744639376217,"lift":2.4744639376218318,"conviction":1.1839298977823367},
+  {"a":"shrimp","b":"frozen vegetables","support":0.01666444474070124,"confidence":0.23320895522388058,"lift":2.4465739484396201,"conviction":1.1798251717289276},
+  {"a":"ham","b":"burgers","support":0.0055992534328756166,"confidence":0.21105527638190955,"lift":2.4206813885943474,"conviction":1.1570032700523158}
+];
+
+const topByConf = [
+  {"a":"nonfat milk","b":"mineral water","support":0.0050659912011731768,"confidence":0.48717948717948711,"lift":2.0438105891126024},
+  {"a":"extra dark chocolate","b":"mineral water","support":0.0057325689908012262,"confidence":0.47777777777777775,"lift":2.0043686303753421},
+  {"a":"light cream","b":"mineral water","support":0.0073323556859085457,"confidence":0.47008547008547008,"lift":1.9720979368630378},
+  {"a":"soup","b":"mineral water","support":0.023063591521130515,"confidence":0.45646437994722955,"lift":1.9149548735929356},
+  {"a":"tomato sauce","b":"spaghetti","support":0.006265831222503666,"confidence":0.4433962264150943,"lift":2.5466424918373831},
+  {"a":"olive oil","b":"mineral water","support":0.027596320490601255,"confidence":0.41902834008097167,"lift":1.7579035676439421},
+  {"a":"protein bar","b":"mineral water","support":0.0077323023596853752,"confidence":0.41726618705035967,"lift":1.7505110005954967},
+  {"a":"ground beef","b":"mineral water","support":0.040927876283162246,"confidence":0.41655359565807326,"lift":1.7475215442008991},
+  {"a":"rice","b":"mineral water","support":0.0077323023596853752,"confidence":0.41134751773049644,"lift":1.7256810573246386},
+  {"a":"tomato sauce","b":"mineral water","support":0.0057325689908012262,"confidence":0.40566037735849053,"lift":1.7018224220167997},
+  {"a":"cider","b":"eggs","support":0.004266097853619517,"confidence":0.4050632911392405,"lift":2.2539909101153137},
+  {"a":"salmon","b":"mineral water","support":0.017064391414478068,"confidence":0.40125391849529779,"lift":1.6833364891684723}
+];
+
+const opflow = [
+  {name:"Read CSV", key:"read_csv", desc:"Lee el archivo crudo. Parámetros clave: use_header_row=false (verificado — evita perder la transacción #1), column_separators=\",\", encoding=UTF-8. Genera att1…att20."},
+  {name:"FP-Growth", key:"concurrency:fp_growth", desc:"Minería de itemsets frecuentes. input_format=\"items in separate columns\" consume att1…att20 directamente. min_support=0.004."},
+  {name:"Item Sets to Data", key:"item_sets_to_data", desc:"Convierte los itemsets frecuentes (objeto interno de FP-Growth) a una tabla exportable: columnas Items, Size, Frequency, Support, Score."},
+  {name:"Write CSV", key:"write_csv", desc:"Exporta la tabla de itemsets a mbo_frequent_itemsets.csv — 959 filas, tamaños de itemset 1 a 4."},
+  {name:"(post-proceso) Cálculo de reglas", key:"formulas estándar", desc:"A partir de los itemsets de tamaño 1 y 2 exportados, se calculan confidence/lift/conviction/leverage/coverage para ambas direcciones de cada par, y se filtra por confidence ≥ 0.2 — ver sección 10 para el porqué de este paso fuera de Studio."}
+];
+
+function bars(containerId, data, opts) {
+  const el = document.getElementById(containerId);
+  const max = Math.max(...data.map(opts.value));
+  el.innerHTML = data.map(d => {
+    const v = opts.value(d);
+    const pct = (v / max * 100).toFixed(1);
+    return `<div class="barrow">
+      <div class="barlabel" title="${opts.label(d)}">${opts.label(d)}</div>
+      <div class="bartrack"><div class="barfill" style="width:${pct}%"></div></div>
+      <div class="barval">${opts.fmt(v)}</div>
+    </div>`;
+  }).join("");
+}
+
+bars("chart-top-products", topProducts, {
+  value: d => d.support,
+  label: d => d.name,
+  fmt: v => (v*100).toFixed(1) + "%"
+});
+
+bars("chart-top-lift", topByLift, {
+  value: d => d.lift,
+  label: d => d.a + " → " + d.b,
+  fmt: v => v.toFixed(2) + "×"
+});
+
+document.getElementById("opflow").innerHTML = opflow.map((o,i) => `
+  <div class="opstep">
+    <div class="opdot">${i+1}</div>
+    <div>
+      <span class="opname">${o.name}</span><span class="opkey">${o.key}</span>
+      <div class="opdesc">${o.desc}</div>
+    </div>
+  </div>
+`).join("");
+
+function fillRulesTable(tableId, data, withConviction) {
+  const tbody = document.querySelector("#" + tableId + " tbody");
+  tbody.innerHTML = data.map(r => `
+    <tr>
+      <td>${r.a}</td>
+      <td>${r.b}</td>
+      <td class="num">${(r.support*100).toFixed(2)}%</td>
+      <td class="num">${(r.confidence*100).toFixed(1)}%</td>
+      <td class="num">${r.lift.toFixed(2)}</td>
+      ${withConviction ? `<td class="num">${r.conviction.toFixed(2)}</td>` : ""}
+    </tr>
+  `).join("");
+}
+fillRulesTable("table-lift", topByLift, true);
+fillRulesTable("table-conf", topByConf, false);
+</script>
+</body>
+</html>
